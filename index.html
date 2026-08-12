@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actoron GMR - Esports Tournaments</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { darkbg: '#0f172a', cardbg: '#1e293b', neonred: '#ef4444', neongreen: '#22c55e' }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { background-color: #0f172a; color: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+        .hidden { display: none !important; }
+    </style>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-darkbg text-white font-sans antialiased min-h-screen pb-24">
+
+    <!-- Top Toast Notification -->
+    <div id="topNotification" class="fixed top-0 left-0 right-0 z-50 bg-neonred text-white text-xs px-4 py-3 text-center font-bold shadow-lg transform -translate-y-full transition-transform duration-300">
+        <span id="notifText">Notification message here</span>
+    </div>
+
+    <!-- Header / Navbar -->
+    <header id="mainHeader" class="bg-cardbg border-b border-gray-800 sticky top-0 z-40 px-4 py-3 flex justify-between items-center hidden">
+        <div class="flex items-center space-x-2 cursor-pointer" onclick="switchTab('tournaments')">
+            <i class="fa-solid fa-gamepad text-neonred text-2xl"></i>
+            <span class="font-bold text-xl tracking-wider text-white">ACTORON <span id="headerTitleText" class="text-neonred">GMR</span></span>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button id="walletNavBtn" onclick="switchTab('wallet')" class="bg-gray-800 px-3 py-1.5 rounded-full text-xs font-semibold border border-gray-700 flex items-center space-x-1">
+                <i class="fa-solid fa-wallet text-yellow-400"></i>
+                <span id="navDepositBal">₹0</span> | <span id="navWinningBal" class="text-neongreen">₹0</span>
+            </button>
+            <!-- एडमिन के लिए प्रोफाइल फोटो यहाँ से छुप जाएगी, यूजर के लिए दिखेगी -->
+            <button id="navProfileBtnContainer" onclick="switchTab('profile')" class="w-9 h-9 rounded-full bg-neonred overflow-hidden flex items-center justify-center font-bold text-sm border border-gray-600">
+                <img id="navAvatar" src="https://via.placeholder.com/150" alt="Avatar" class="w-full h-full object-cover">
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto p-4">
+
+        <!-- AUTH SECTION -->
+        <section id="authSection" class="my-6 bg-cardbg p-6 rounded-2xl shadow-xl border border-gray-800 space-y-4">
+            <div class="flex border-b border-gray-700 pb-3 mb-2">
+                <button id="tabLoginBtn" onclick="switchAuthMode('login')" class="flex-1 text-center font-bold text-sm text-neonred pb-1 border-b-2 border-neonred transition">Login</button>
+                <button id="tabRegisterBtn" onclick="switchAuthMode('register')" class="flex-1 text-center font-bold text-sm text-gray-400 pb-1 transition">Register</button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <div id="loginFormContainer" class="space-y-3">
+                <div class="text-center mb-2">
+                    <h2 class="text-lg font-bold text-neonred">Welcome Back</h2>
+                    <p class="text-[11px] text-gray-400">Enter mobile number & password</p>
+                </div>
+                <input type="tel" id="loginPhone" maxlength="10" placeholder="10-digit Mobile Number" class="w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-xs focus:outline-none focus:border-neonred">
+                <input type="password" id="loginPassword" placeholder="Password" class="w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-xs focus:outline-none focus:border-neonred">
+                <div class="text-right">
+                    <button type="button" onclick="openForgotPasswordModal()" class="text-[11px] text-neonred hover:underline">Forgot Password?</button>
+                </div>
+                <button type="button" onclick="handleLogin()" class="w-full bg-neonred py-3 rounded-xl font-bold text-xs hover:bg-red-600 transition">LOGIN</button>
+            </div>
+
+            <!-- REGISTER FORM -->
+            <div id="registerFormContainer" class="space-y-3 hidden">
+                <div class="text-center mb-2">
+                    <h2 class="text-lg font-bold text-neongreen">Create Account</h2>
+                    <p class="text-[11px] text-gray-400">Join Actoron GMR Esports Platform</p>
+                </div>
+                <input type="text" id="regUsername" placeholder="Gamer Username" class="w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-xs focus:outline-none focus:border-neongreen">
+                <input type="tel" id="regPhone" maxlength="10" placeholder="10-digit Mobile Number" class="w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-xs focus:outline-none focus:border-neongreen">
+                <input type="email" id="regEmail" placeholder="yourmail@gmail.com" class="w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-xs focus:outline-none focus:border-neongreen">
+                <input type="password" id="regPassword" placeholder="Create Password" class="w-full p-3 bg-gray-900 border border-gray-700 rounded-xl text-xs focus:outline-none focus:border-neongreen">
+                <button type="button" onclick="handleRegister()" class="w-full bg-neongreen text-gray-950 py-3 rounded-xl font-bold text-xs hover:bg-green-500 transition">REGISTER NOW</button>
+            </div>
+        </section>
+
+        <!-- APP TABS CONTENT -->
+        <div id="appContent" class="hidden space-y-4">
+            
+            <!-- TAB 1: TOURNAMENTS -->
+            <div id="tab-tournaments" class="space-y-4">
+                <h2 id="tab1Heading" class="text-lg font-bold text-neonred">Live Esports Tournaments</h2>
+                
+                <!-- Search Bar -->
+                <div id="searchBarContainer" class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input type="text" id="tournamentSearchInput" oninput="filterTournaments()" placeholder="Search tourneys (e.g. Free Fire, Minecraft, Solo)..." class="w-full p-3 pl-10 bg-cardbg border border-gray-800 rounded-xl text-xs focus:outline-none focus:border-neonred text-white">
+                </div>
+
+                <div id="adminPanelControls" class="hidden space-y-3 bg-cardbg p-4 rounded-2xl border border-gray-800 mb-4">
+                    <h3 class="text-sm font-bold text-red-400"><i class="fa-solid fa-shield-halved mr-1"></i> Admin Match Publisher</h3>
+                    <input type="text" id="tTitle" placeholder="Match Title (e.g. Free Fire Solo Custom)" class="w-full p-2.5 bg-gray-900 rounded text-xs border border-gray-700 focus:outline-none">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" id="tPrize" placeholder="Prize Pool (₹)" class="w-full p-2.5 bg-gray-900 rounded text-xs border border-gray-700 focus:outline-none">
+                        <input type="number" id="tEntry" placeholder="Entry Fee (₹)" class="w-full p-2.5 bg-gray-900 rounded text-xs border border-gray-700 focus:outline-none">
+                    </div>
+                    <input type="text" id="tTime" placeholder="Match Time (e.g. Today, 10:00 PM)" class="w-full p-2.5 bg-gray-900 rounded text-xs border border-gray-700 focus:outline-none">
+                    <input type="file" id="tBannerFile" accept="image/*" class="w-full p-2 bg-gray-900 rounded text-xs border border-gray-700 text-gray-400">
+                    <button type="button" onclick="createNewTournament()" class="w-full bg-neonred py-2.5 rounded text-xs font-bold hover:bg-red-600">PUBLISH MATCH</button>
+                </div>
+                <div id="tournamentList" class="space-y-3"></div>
+            </div>
+
+            <!-- TAB 2: ROOMS / BOOKINGS / ADMIN DEPOSITS -->
+            <div id="tab-rooms" class="hidden space-y-4">
+                <h2 id="tab2Heading" class="text-lg font-bold text-cyan-400">My Booked Matches & Rooms</h2>
+                <div id="tab2ContentBody" class="space-y-3"></div>
+            </div>
+
+            <!-- TAB 3: SCOREBOARD & HISTORY / ADMIN WITHDRAWALS -->
+            <div id="tab-scoreboard" class="hidden space-y-4">
+                <h2 id="tab3Heading" class="text-lg font-bold text-yellow-400">History & Scoreboard</h2>
+                <div id="tab3ContentBody" class="space-y-3">
+                    <div class="bg-cardbg border border-gray-800 rounded-2xl p-4 text-xs space-y-2">
+                        <h3 class="font-bold text-yellow-400 mb-2"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Transaction & Match History</h3>
+                        <div id="userHistoryList" class="space-y-2 text-gray-300">
+                            <p class="text-gray-400">No recent history available.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: WALLET / ADMIN QR SETUP -->
+            <div id="tab-wallet" class="hidden space-y-4">
+                <div id="userWalletSection">
+                    <h2 class="text-lg font-bold text-yellow-400">My Wallets</h2>
+                    <div class="grid grid-cols-2 gap-3 my-3">
+                        <div class="bg-cardbg border border-gray-800 p-4 rounded-2xl text-center">
+                            <div class="text-xs text-gray-400">Deposit Wallet</div>
+                            <div id="depositWalletBal" class="text-xl font-bold text-yellow-400">₹0</div>
+                            <button type="button" onclick="openAddMoneyModal()" class="mt-3 w-full bg-gray-800 py-1.5 text-xs font-bold rounded-xl border border-gray-700">Add Money</button>
+                        </div>
+                        <div class="bg-cardbg border border-gray-800 p-4 rounded-2xl text-center">
+                            <div class="text-xs text-gray-400">Winning Wallet</div>
+                            <div id="winningWalletBal" class="text-xl font-bold text-neongreen">₹0</div>
+                            <button type="button" onclick="openWithdrawModal()" class="mt-3 w-full bg-neongreen text-gray-950 py-1.5 text-xs font-bold rounded-xl">Withdraw</button>
+                        </div>
+                    </div>
+                    <div class="bg-cardbg border border-gray-800 p-4 rounded-2xl text-center space-y-2">
+                        <h3 class="text-xs font-bold text-gray-300">Scan & Pay (Abhishek Ramesh Bharti)</h3>
+                        <p class="text-[10px] text-cyan-400 font-mono">7039188148@fam</p>
+                        <div class="bg-white p-2 inline-block rounded-xl"><img id="permanentQRImg" src="" class="w-44 h-auto rounded"></div>
+                        <p class="text-xs text-gray-400">Scan via any UPI App</p>
+                    </div>
+                </div>
+                
+                <!-- Admin QR & Earnings Section -->
+                <div id="adminQRSection" class="hidden space-y-4">
+                    <h2 class="text-base font-bold text-cyan-400"><i class="fa-solid fa-qrcode mr-2"></i>Update QR Code</h2>
+                    <div class="bg-cardbg p-4 rounded-xl text-center space-y-3 border border-gray-800">
+                        <div class="bg-white p-2 inline-block rounded-xl"><img id="adminQRPreview" src="" class="w-36 h-auto rounded mx-auto"></div>
+                        <input type="file" accept="image/*" onchange="uploadNewQR(event)" class="text-xs text-slate-400 w-full">
+                    </div>
+
+                    <!-- Admin Personal Earnings / Withdrawal Tracking -->
+                    <div class="bg-cardbg p-4 rounded-2xl border border-gray-800 space-y-3">
+                        <h3 class="text-sm font-bold text-yellow-400"><i class="fa-solid fa-vault mr-1"></i> Admin Earnings & Payout</h3>
+                        <p class="text-[11px] text-gray-400">Track total collected entry fees and request payouts to your bank/UPI.</p>
+                        <div class="bg-gray-900 p-3 rounded-xl flex justify-between items-center">
+                            <span class="text-xs text-gray-300">Total Admin Earnings:</span>
+                            <span id="adminTotalEarnings" class="text-sm font-bold text-neongreen">₹0</span>
+                        </div>
+                        <button type="button" onclick="openAdminWithdrawModal()" class="w-full bg-neongreen text-gray-950 py-2.5 rounded-xl font-bold text-xs">REQUEST ADMIN PAYOUT</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: PROFILE / ADMIN USERS -->
+            <div id="tab-profile" class="hidden space-y-4">
+                <div id="userProfileSection">
+                    <h2 class="text-lg font-bold text-neonred">My Profile</h2>
+                    <div class="bg-cardbg border border-gray-800 p-4 rounded-2xl space-y-3 text-center">
+                        <div class="inline-block relative">
+                            <img id="profileAvatarImg" src="https://via.placeholder.com/150" class="w-20 h-20 rounded-full object-cover mx-auto border-2 border-neonred">
+                            <input type="file" accept="image/*" onchange="uploadProfileAvatar(event)" class="absolute inset-0 opacity-0 cursor-pointer">
+                        </div>
+                        <p class="text-[10px] text-gray-400">Tap image to change profile photo</p>
+                        <div class="text-left space-y-3 pt-2">
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">Username</label>
+                                <input type="text" id="profileUsername" class="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-xl text-xs font-bold text-neonred" readonly>
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400 block mb-1">Email</label>
+                                <input type="email" id="profileEmail" class="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-xl text-xs" readonly>
+                            </div>
+                        </div>
+                        <button type="button" onclick="handleLogout()" class="w-full bg-gray-800 py-2 rounded-xl text-xs text-gray-400 font-bold mt-2 border border-gray-700">LOGOUT</button>
+                    </div>
+                </div>
+                <div id="adminUsersSection" class="hidden space-y-3">
+                    <h2 class="text-base font-bold text-purple-400"><i class="fa-solid fa-users mr-2"></i>Registered Players & Stats</h2>
+                    <div id="adminUsersList" class="space-y-2">
+                        <p class="text-xs text-gray-400">No players registered yet.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- TERMS & POLICY RISK MODAL -->
+    <div id="riskPolicyModal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cardbg border border-red-500/50 rounded-2xl p-5 max-w-sm w-full text-center space-y-4 relative shadow-2xl">
+            <div class="text-red-500 text-3xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <h3 class="text-base font-bold text-neonred">Risk Warning & Terms Policy</h3>
+            <div class="bg-gray-900 p-3 rounded-xl text-left text-[11px] text-gray-300 max-h-40 overflow-y-auto space-y-2 border border-gray-800">
+                <p>⚠️ <strong>Play at Your Own Risk:</strong> Participating in esports tournaments involves financial risk. You are playing strictly at your own risk.</p>
+                <p>• Actoron GMR is not responsible for any financial losses incurred during matches or tournament entry fee payments.</p>
+                <p>• By clicking "I Agree & Continue", you confirm acceptance of all liability.</p>
+            </div>
+            <button type="button" onclick="acceptRiskPolicy()" class="w-full bg-neongreen text-gray-950 py-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-green-500 transition">I Agree & Continue</button>
+        </div>
+    </div>
+
+    <!-- FORGOT PASSWORD MODAL -->
+    <div id="forgotPasswordModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cardbg border border-gray-700 rounded-2xl p-5 max-w-xs w-full text-center space-y-3 relative">
+            <button type="button" onclick="document.getElementById('forgotPasswordModal').classList.add('hidden')" class="absolute top-3 right-3 text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-base font-bold text-neonred">Reset Password</h3>
+            <input type="tel" id="forgotPhone" maxlength="10" placeholder="10-digit Mobile Number" class="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-xl text-xs text-center focus:outline-none">
+            <input type="password" id="newPasswordInput" placeholder="Enter New Password" class="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-xl text-xs text-center focus:outline-none">
+            <button type="button" onclick="submitForgotPassword()" class="w-full bg-neonred text-white py-2.5 rounded-xl font-bold text-xs">UPDATE PASSWORD</button>
+        </div>
+    </div>
+
+    <!-- Deposit Modal -->
+    <div id="depositScannerModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cardbg border border-gray-700 rounded-2xl p-5 max-w-xs w-full text-center space-y-3 relative">
+            <button type="button" onclick="document.getElementById('depositScannerModal').classList.add('hidden')" class="absolute top-3 right-3 text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-base font-bold text-yellow-400">Add Deposit Request</h3>
+            <div class="bg-white p-2 inline-block rounded-xl"><img id="modalQRImg" src="" class="w-36 h-auto rounded"></div>
+            <input type="number" id="depositAmountInput" placeholder="Enter Amount (₹)" class="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-xl text-xs text-center focus:outline-none">
+            <input type="text" id="senderUpiInput" placeholder="Sender UPI ID / Number" class="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-xl text-xs text-center focus:outline-none">
+            <input type="text" id="utrInput" placeholder="12-digit UTR / Transaction ID" class="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-xl text-xs text-center focus:outline-none">
+            <button type="button" onclick="submitDepositProof()" class="w-full bg-neongreen text-gray-950 py-2.5 rounded-xl font-bold text-xs">SUBMIT TO ADMIN</button>
+        </div>
+    </div>
+
+    <!-- Withdraw Modal -->
+    <div id="withdrawModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cardbg border border-gray-700 rounded-2xl p-5 max-w-xs w-full text-center space-y-3 relative">
+            <button type="button" onclick="document.getElementById('withdrawModal').classList.add('hidden')" class="absolute top-3 right-3 text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-base font-bold text-neongreen">Withdrawal Request</h3>
+            <input type="number" id="withdrawAmountInput" placeholder="Enter Amount (₹)" class="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-xl text-xs text-center focus:outline-none">
+            <input type="text" id="withdrawUpiInput" placeholder="Your UPI ID for Payout" class="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-xl text-xs text-center focus:outline-none">
+            <button type="button" onclick="submitWithdrawRequest()" class="w-full bg-neonred text-white py-2.5 rounded-xl font-bold text-xs">REQUEST WITHDRAWAL</button>
+        </div>
+    </div>
+
+    <!-- Admin Payout Modal -->
+    <div id="adminWithdrawModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cardbg border border-gray-700 rounded-2xl p-5 max-w-xs w-full text-center space-y-3 relative">
+            <button type="button" onclick="document.getElementById('adminWithdrawModal').classList.add('hidden')" class="absolute top-3 right-3 text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-base font-bold text-yellow-400">Admin Earnings Payout</h3>
+            <input type="number" id="adminWithdrawAmount" placeholder="Enter Amount to Withdraw (₹)" class="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-xl text-xs text-center focus:outline-none">
+            <input type="text" id="adminUpiInput" placeholder="Your Personal UPI ID / Bank" class="w-full p-2.5 bg-gray-900 border border-gray-700 rounded-xl text-xs text-center focus:outline-none">
+            <button type="button" onclick="submitAdminPayout()" class="w-full bg-neongreen text-gray-950 py-2.5 rounded-xl font-bold text-xs">CONFIRM PAYOUT</button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav id="bottomNav" class="fixed bottom-0 left-0 right-0 bg-cardbg border-t border-gray-800 flex justify-around py-2.5 z-40 max-w-md mx-auto hidden shadow-lg">
+        <button type="button" onclick="switchTab('tournaments')" class="text-neonred text-xs flex flex-col items-center"><i class="fa-solid fa-gamepad text-base"></i><span id="navLabel1">Play</span></button>
+        <button type="button" onclick="switchTab('rooms')" class="text-gray-400 text-xs flex flex-col items-center"><i class="fa-solid fa-key text-base"></i><span id="navLabel2">Bookings</span></button>
+        <button type="button" onclick="switchTab('scoreboard')" class="text-gray-400 text-xs flex flex-col items-center"><i class="fa-solid fa-clock-rotate-left text-base"></i><span id="navLabel3">History</span></button>
+        <button type="button" onclick="switchTab('wallet')" class="text-gray-400 text-xs flex flex-col items-center"><i class="fa-solid fa-wallet text-base"></i><span id="navLabel4">Wallet</span></button>
+        <button type="button" onclick="switchTab('profile')" class="text-gray-400 text-xs flex flex-col items-center"><i class="fa-solid fa-user text-base"></i><span id="navLabel5">Profile</span></button>
+    </nav>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAppUewPYj0ITchDCpGWALrJX6hnRf1dRY",
+            authDomain: "actoron-gmr.firebaseapp.com",
+            databaseURL: "https://actoron-gmr-default-rtdb.firebaseio.com",
+            projectId: "actoron-gmr",
+            storageBucket: "actoron-gmr.firebasestorage.app",
+            messagingSenderId: "290437968322",
+            appId: "1:290437968322:web:6d0306e33c82be8484a65b",
+            measurementId: "G-WRFSWTV5WY"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const dbRef = firebase.database().ref();
+
+        const ADMIN_PHONE = "7039188148";
+        const ADMIN_PASS = "Actoron@Admin#2026";
+
+        let allTournamentsCache = [];
+
+        window.onload = function() {
+            dbRef.child('admin_upi_qr').once('value', (snapshot) => {
+                if(!snapshot.exists()) {
+                    dbRef.child('admin_upi_qr').set("42553.jpg");
+                }
+            });
+
+            if(localStorage.getItem('actoron_user_logged') === "true") {
+                let role = localStorage.getItem('actoron_role');
+                let username = localStorage.getItem('actoron_username') || "Gamer";
+                
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('mainHeader').classList.remove('hidden');
+                document.getElementById('bottomNav').classList.remove('hidden');
+                document.getElementById('appContent').classList.remove('hidden');
+
+                if(role === 'admin') {
+                    setupAdminDashboardUI();
+                } else {
+                    setupUserDashboardUI(username);
+                }
+            } else {
+                document.getElementById('authSection').classList.remove('hidden');
+                document.getElementById('mainHeader').classList.add('hidden');
+                document.getElementById('bottomNav').classList.add('hidden');
+                document.getElementById('appContent').classList.add('hidden');
+            }
+
+            dbRef.child('admin_upi_qr').on('value', (snapshot) => {
+                const qr = snapshot.val();
+                if(qr) {
+                    if(document.getElementById('permanentQRImg')) document.getElementById('permanentQRImg').src = qr;
+                    if(document.getElementById('adminQRPreview')) document.getElementById('adminQRPreview').src = qr;
+                    if(document.getElementById('modalQRImg')) document.getElementById('modalQRImg').src = qr;
+                }
+            });
+
+            dbRef.child('admin_tournaments_list').on('value', () => loadTournamentsList());
+
+            let role = localStorage.getItem('actoron_role');
+            if(role === 'admin') {
+                dbRef.child('admin_deposit_requests').on('value', () => loadAdminData());
+                dbRef.child('admin_withdraw_requests').on('value', () => loadAdminData());
+                dbRef.child('actoron_registered_users').on('value', () => loadAdminData());
+                dbRef.child('admin_earnings').on('value', (snapshot) => {
+                    let earnings = snapshot.val() || 0;
+                    if(document.getElementById('adminTotalEarnings')) document.getElementById('adminTotalEarnings').innerText = "₹" + earnings;
+                });
+            } else if(role === 'user') {
+                let username = localStorage.getItem('actoron_username');
+                if(username) {
+                    dbRef.child('actoron_wallets/' + username).on('value', () => loadUserWalletAndTransactions());
+                    dbRef.child('actoron_booked_matches_' + username).on('value', () => loadUserBookedMatches());
+                    dbRef.child('actoron_history_' + username).on('value', () => loadUserHistory());
+                }
+            }
+        };
+
+        function showToast(msg) {
+            const b = document.getElementById('topNotification');
+            document.getElementById('notifText').innerText = msg;
+            b.classList.remove('-translate-y-full');
+            setTimeout(() => b.classList.add('-translate-y-full'), 4000);
+        }
+
+        function switchAuthMode(mode) {
+            if(mode === 'login') {
+                document.getElementById('loginFormContainer').classList.remove('hidden');
+                document.getElementById('registerFormContainer').classList.add('hidden');
+                document.getElementById('tabLoginBtn').classList.add('text-neonred', 'border-b-2', 'border-neonred');
+                document.getElementById('tabLoginBtn').classList.remove('text-gray-400');
+                document.getElementById('tabRegisterBtn').classList.remove('text-neongreen', 'border-b-2', 'border-neongreen');
+                document.getElementById('tabRegisterBtn').classList.add('text-gray-400');
+            } else {
+                document.getElementById('loginFormContainer').classList.add('hidden');
+                document.getElementById('registerFormContainer').classList.remove('hidden');
+                document.getElementById('tabRegisterBtn').classList.add('text-neongreen', 'border-b-2', 'border-neongreen');
+                document.getElementById('tabRegisterBtn').classList.remove('text-gray-400');
+                document.getElementById('tabLoginBtn').classList.remove('text-neonred', 'border-b-2', 'border-neonred');
+                document.getElementById('tabLoginBtn').classList.add('text-gray-400');
+            }
+        }
+
+        function handleRegister() {
+            const username = document.getElementById('regUsername').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value.trim();
+
+            if(!username || phone.length !== 10 || !email || !password) {
+                showToast("Please fill all registration fields correctly!");
+                return;
+            }
+
+            dbRef.child('actoron_registered_users').once('value', (snapshot) => {
+                let users = snapshot.val() || {};
+                let userExists = Object.values(users).some(u => u.phone === phone);
+                if(userExists) {
+                    showToast("Mobile number already registered! Please login.");
+                    switchAuthMode('login');
+                    return;
+                }
+
+                let newUserKey = dbRef.child('actoron_registered_users').push().key;
+                let userData = { phone, username, email, password, deposit: 0, winning: 0 };
+                
+                dbRef.child('actoron_registered_users/' + newUserKey).set(userData, (error) => {
+                    if(!error) {
+                        localStorage.setItem('actoron_temp_user', JSON.stringify({ username, email, phone, role: 'user' }));
+                        document.getElementById('riskPolicyModal').classList.remove('hidden');
+                    } else {
+                        showToast("Registration failed. Try again.");
+                    }
+                });
+            });
+        }
+
+        function handleLogin() {
+            const phone = document.getElementById('loginPhone').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+
+            if(phone.length !== 10 || !password) {
+                showToast("Enter valid phone number and password!");
+                return;
+            }
+
+            if(phone === ADMIN_PHONE && password === ADMIN_PASS) {
+                localStorage.setItem('actoron_temp_user', JSON.stringify({ username: "Master Admin", role: 'admin' }));
+                document.getElementById('riskPolicyModal').classList.remove('hidden');
+                return;
+            }
+
+            dbRef.child('actoron_registered_users').once('value', (snapshot) => {
+                let users = snapshot.val() || {};
+                let foundUser = Object.values(users).find(u => u.phone === phone && u.password === password);
+
+                if(!foundUser) {
+                    showToast("Invalid mobile number or password!");
+                    return;
+                }
+
+                localStorage.setItem('actoron_temp_user', JSON.stringify({ ...foundUser, role: 'user' }));
+                document.getElementById('riskPolicyModal').classList.add('hidden');
+            });
+        }
+
+        function acceptRiskPolicy() {
+            let tempUser = JSON.parse(localStorage.getItem('actoron_temp_user'));
+            if(!tempUser) return;
+
+            localStorage.setItem('actoron_user_logged', "true");
+            localStorage.setItem('actoron_role', tempUser.role);
+            localStorage.setItem('actoron_username', tempUser.username);
+            if(tempUser.email) localStorage.setItem('actoron_email', tempUser.email);
+            localStorage.removeItem('actoron_temp_user');
+
+            document.getElementById('riskPolicyModal').classList.add('hidden');
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('mainHeader').classList.remove('hidden');
+            document.getElementById('bottomNav').classList.remove('hidden');
+            document.getElementById('appContent').classList.remove('hidden');
+
+            if(tempUser.role === 'admin') {
+                setupAdminDashboardUI();
+            } else {
+                setupUserDashboardUI(tempUser.username);
+            }
+            showToast("Login Successful!");
+        }
+
+        function setupUserDashboardUI(username) {
+            document.getElementById('headerTitleText').innerText = "GMR";
+            document.getElementById('walletNavBtn').classList.remove('hidden');
+            document.getElementById('navProfileBtnContainer').classList.remove('hidden'); // यूजर के लिए प्रोफाइल फोटो दिखाएँ
+            document.getElementById('adminPanelControls').classList.add('hidden');
+            document.getElementById('adminQRSection').classList.add('hidden');
+            document.getElementById('userWalletSection').classList.remove('hidden');
+            document.getElementById('adminUsersSection').classList.add('hidden');
+            document.getElementById('userProfileSection').classList.remove('hidden');
+
+            document.getElementById('tab1Heading').innerText = "Live Esports Tournaments";
+            document.getElementById('tab2Heading').innerText = "My Booked Matches & Rooms";
+            document.getElementById('tab3Heading').innerText = "Match & Transaction History";
+
+            document.getElementById('navLabel1').innerText = "Play";
+            document.getElementById('navLabel2').innerText = "Bookings";
+            document.getElementById('navLabel3').innerText = "History";
+            document.getElementById('navLabel4').innerText = "Wallet";
+            document.getElementById('navLabel5').innerText = "Profile";
+
+            document.getElementById('profileUsername').value = username;
+            document.getElementById('profileEmail').value = localStorage.getItem('actoron_email') || "";
+            
+            let savedAvatar = localStorage.getItem('actoron_avatar_' + username);
+            if(savedAvatar) {
+                document.getElementById('profileAvatarImg').src = savedAvatar;
+                document.getElementById('navAvatar').src = savedAvatar;
+            }
+            loadUserWalletAndTransactions();
+            loadTournamentsList();
+            loadUserBookedMatches();
+            loadUserHistory();
+        }
+
+        function setupAdminDashboardUI() {
+            document.getElementById('headerTitleText').innerText = "ADMIN PANEL";
+            document.getElementById('walletNavBtn').classList.add('hidden');
+            document.getElementById('navProfileBtnContainer').classList.add('hidden'); // एडमिन के लिए प्रोफाइल फोटो हटा दी गई है
+            document.getElementById('adminPanelControls').classList.remove('hidden');
+            document.getElementById('adminQRSection').classList.remove('hidden');
+            document.getElementById('userWalletSection').classList.add('hidden');
+            document.getElementById('adminUsersSection').classList.remove('hidden');
+            document.getElementById('userProfileSection').classList.add('hidden');
+
+            document.getElementById('tab1Heading').innerText = "Setup & Publish Tournament";
+            document.getElementById('tab2Heading').innerText = "Deposit Requests (UTR Check)";
+            document.getElementById('tab2ContentBody').innerHTML = `<div id="depositRequestsList" class="space-y-2"><p class="text-xs text-gray-400">No pending deposit requests.</p></div>`;
+            document.getElementById('tab3Heading').innerText = "Withdrawal Requests";
+            document.getElementById('tab3ContentBody').innerHTML = `<div id="withdrawRequestsList" class="space-y-2"><p class="text-xs text-gray-400">No pending withdrawal requests.</p></div>`;
+
+            document.getElementById('navLabel1').innerText = "Match";
+            document.getElementById('navLabel2').innerText = "Deposit";
+            document.getElementById('navLabel3').innerText = "Withdraw";
+            document.getElementById('navLabel4').innerText = "QR Code";
+            document.getElementById('navLabel5').innerText = "Users";
+
+            loadAdminData();
+        }
+
+        function openForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').classList.remove('hidden');
+        }
+
+        function submitForgotPassword() {
+            const phone = document.getElementById('forgotPhone').value.trim();
+            const newPassword = document.getElementById('newPasswordInput').value.trim();
+
+            if(phone.length !== 10 || !newPassword) {
+                showToast("Please enter valid phone and new password!");
+                return;
+            }
+
+            dbRef.child('actoron_registered_users').once('value', (snapshot) => {
+                let users = snapshot.val() || {};
+                let userKey = Object.keys(users).find(k => users[k].phone === phone);
+
+                if(!userKey) {
+                    showToast("Mobile number not found in system!");
+                    return;
+                }
+
+                dbRef.child('actoron_registered_users/' + userKey).update({ password: newPassword }, () => {
+                    showToast("Password updated successfully! Please login.");
+                    document.getElementById('forgotPasswordModal').classList.add('hidden');
+                    switchAuthMode('login');
+                });
+            });
+        }
+
+        function uploadProfileAvatar(event) {
+            const file = event.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    let username = localStorage.getItem('actoron_username');
+                    localStorage.setItem('actoron_avatar_' + username, e.target.result);
+                    document.getElementById('profileAvatarImg').src = e.target.result;
+                    document.getElementById('navAvatar').src = e.target.result;
+                    showToast("Profile Photo Updated!");
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function createNewTournament() {
+            let title = document.getElementById('tTitle').value.trim();
+            let prize = document.getElementById('tPrize').value.trim();
+            let entry = document.getElementById('tEntry').value.trim();
+            let time = document.getElementById('tTime').value.trim();
+            let fileInput = document.getElementById('tBannerFile');
+
+            if(!title || !prize || !entry || !time) {
+                showToast("Fill title, prize, entry fee and time!"); 
+                return;
+            }
+
+            if(fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    saveTournamentData(title, prize, entry, time, e.target.result);
+                }
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                saveTournamentData(title, prize, entry, time, "");
+            }
+        }
+
+        function saveTournamentData(title, prize, entry, time, banner) {
+            let matchId = 'MATCH_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+            let newTourney = { id: matchId, title, prize, entry, time, banner, roomId: "Not Shared Yet", roomPass: "Not Shared Yet", serverIp: "Not Shared Yet" };
+
+            dbRef.child('admin_tournaments_list/' + matchId).set(newTourney, () => {
+                showToast("Tournament published successfully!");
+                document.getElementById('tTitle').value = "";
+                document.getElementById('tPrize').value = "";
+                document.getElementById('tEntry').value = "";
+                document.getElementById('tTime').value = "";
+                document.getElementById('tBannerFile').value = "";
+            });
+        }
+
+        // मैच डिलीट करने का नया फंक्शन
+        function deleteTournament(matchId) {
+            if(confirm("क्या आप वाकई इस टूर्नामेंट को हटाना चाहते हैं?")) {
+                dbRef.child('admin_tournaments_list/' + matchId).remove(() => {
+                    showToast("टूर्नामेंट हटा दिया गया है।");
+                    loadTournamentsList();
+                });
+            }
+        }
+
+        function uploadNewQR(event) {
+            const file = event.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    dbRef.child('admin_upi_qr').set(e.target.result, () => {
+                        showToast("QR Code Updated Successfully Everywhere!");
+                    });
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function loadAdminData() {
+            dbRef.child('actoron_registered_users').once('value', (snapshot) => {
+                let users = snapshot.val() || {};
+                let userDiv = document.getElementById('adminUsersList');
+                if(userDiv) {
+                    let userArray = Object.values(users);
+                    if(userArray.length > 0) {
+                        userDiv.innerHTML = userArray.map(u => `
+                            <div class="bg-cardbg p-3 rounded-xl text-xs space-y-1.5 border border-gray-800">
+                                <div class="flex justify-between font-bold">
+                                    <span class="text-neonred">${u.username}</span>
+                                    <span class="text-gray-400">${u.phone}</span>
+                                </div>
+                                <div class="text-gray-400 text-[11px]">${u.email || 'No Email'}</div>
+                                <div class="grid grid-cols-2 gap-1 pt-1 text-center bg-gray-900 p-2 rounded-lg">
+                                    <div><div class="text-[10px] text-gray-400">Deposit</div><div class="font-bold text-yellow-400">₹${u.deposit || 0}</div></div>
+                                    <div><div class="text-[10px] text-gray-400">Winning</div><div class="font-bold text-neongreen">₹${u.winning || 0}</div></div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        userDiv.innerHTML = `<p class="text-xs text-gray-400">No players registered yet.</p>`;
+                    }
+                }
+            });
+
+            dbRef.child('admin_deposit_requests').once('value', (snapshot) => {
+                let reqs = snapshot.val() || {};
+                let reqDiv = document.getElementById('depositRequestsList');
+                if(reqDiv) {
+                    let reqKeys = Object.keys(reqs);
+                    if(reqKeys.length === 0) {
+                        reqDiv.innerHTML = `<p class="text-xs text-gray-400">No pending deposit requests.</p>`;
+                    } else {
+                        reqDiv.innerHTML = reqKeys.map(key => {
+                            let r = reqs[key];
+                            return `
+                                <div class="bg-gray-900 p-3 rounded-xl text-xs space-y-1.5 border border-gray-800">
+                                    <div class="flex justify-between font-bold"><span class="text-yellow-400">Player: ${r.username}</span><span>Amt: ₹${r.amount}</span></div>
+                                    <div class="text-gray-300">UPI ID: <span class="text-cyan-300 font-mono">${r.senderUpi}</span></div>
+                                    <div class="text-gray-300">UTR No: <span class="text-green-300 font-mono">${r.utr}</span></div>
+                                    <button type="button" onclick="approveDeposit('${key}')" class="w-full bg-neongreen py-1.5 rounded font-bold text-gray-950 mt-1">Approve Deposit</button>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                }
+            });
+
+            dbRef.child('admin_withdraw_requests').once('value', (snapshot) => {
+                let wReqs = snapshot.val() || {};
+                let wDiv = document.getElementById('withdrawRequestsList');
+                if(wDiv) {
+                    let wKeys = Object.keys(wReqs);
+                    if(wKeys.length === 0) {
+                        wDiv.innerHTML = `<p class="text-xs text-gray-400">No pending withdrawal requests.</p>`;
+                    } else {
+                        wDiv.innerHTML = wKeys.map(key => {
+                            let w = wReqs[key];
+                            return `
+                                <div class="bg-gray-900 p-3 rounded-xl text-xs space-y-1.5 border border-gray-800">
+                                    <div class="flex justify-between font-bold"><span class="text-neongreen">Player: ${w.username}</span><span>Amt: ₹${w.amount}</span></div>
+                                    <div class="text-gray-300">Payout UPI: <span class="text-yellow-300 font-mono">${w.upi}</span></div>
+                                    <button type="button" onclick="approveWithdraw('${key}')" class="w-full bg-neonred py-1.5 rounded font-bold text-white mt-1">Mark Paid / Complete</button>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                }
+            });
+        }
+
+        function approveDeposit(key) {
+            dbRef.child('admin_deposit_requests/' + key).once('value', (snapshot) => {
+                let r = snapshot.val();
+                if(!r) return;
+
+                dbRef.child('actoron_wallets/' + r.username).once('value', (wSnap) => {
+                    let wallet = wSnap.val() || { deposit: 0, winning: 0 };
+                    wallet.deposit += Number(r.amount);
+                    
+                    dbRef.child('actoron_wallets/' + r.username).set(wallet, () => {
+                        let hKey = dbRef.child('actoron_history_' + r.username).push().key;
+                        dbRef.child('actoron_history_' + r.username + '/' + hKey).set({
+                            text: `Deposit Approved: ₹${r.amount} (UTR: ${r.utr})`,
+                            time: new Date().toLocaleString()
+                        }, () => {
+                            dbRef.child('admin_deposit_requests/' + key).remove(() => {
+                                showToast("Deposit Approved & Credited!");
+                                loadAdminData();
+                            });
+                        });
+                    });
+                });
+            });
+        }
+
+        function approveWithdraw(key) {
+            dbRef.child('admin_withdraw_requests/' + key).once('value', (snapshot) => {
+                let w = snapshot.val();
+                if(!w) { dbRef.child('admin_withdraw_requests/' + key).remove(); loadAdminData(); return; }
+
+                let hKey = dbRef.child('actoron_history_' + w.username).push().key;
+                dbRef.child('actoron_history_' + w.username + '/' + hKey).set({
+                    text: `Withdrawal Paid: ₹${w.amount} to UPI: ${w.upi}`,
+                    time: new Date().toLocaleString()
+                }, () => {
+                    dbRef.child('admin_withdraw_requests/' + key).remove(() => {
+                        showToast("Withdrawal Marked as Paid!");
+                        loadAdminData();
+                    });
+                });
+            });
+        }
+
+        function loadTournamentsList() {
+            dbRef.child('admin_tournaments_list').once('value', (snapshot) => {
+                let tournamentsObj = snapshot.val() || {};
+                allTournamentsCache = Object.values(tournamentsObj);
+                renderTournaments(allTournamentsCache);
+            });
+        }
+
+        function filterTournaments() {
+            let query = document.getElementById('tournamentSearchInput').value.toLowerCase().trim();
+            let filtered = allTournamentsCache.filter(t => 
+                t.title.toLowerCase().includes(query) || t.time.toLowerCase().includes(query)
+            );
+            renderTournaments(filtered);
+        }
+
+        function renderTournaments(tournaments) {
+            const list = document.getElementById('tournamentList');
+            if(!list) return;
+            
+            if(tournaments.length === 0) {
+                list.innerHTML = `<div class="bg-cardbg border border-gray-800 p-4 rounded-2xl text-center text-xs text-gray-400">No tournaments found.</div>`;
+                return;
+            }
+
+            let username = localStorage.getItem('actoron_username');
+            let role = localStorage.getItem('actoron_role');
+
+            if(role === 'admin') {
+                list.innerHTML = tournaments.map(t => `
+                    <div class="bg-cardbg border border-gray-800 p-4 rounded-2xl shadow-md space-y-3">
+                        ${t.banner ? `<img src="${t.banner}" class="w-full h-40 object-cover rounded-xl border border-gray-700">` : ''}
+                        <div class="flex justify-between items-center">
+                            <span class="bg-red-500/20 text-neonred text-xs px-2 py-0.5 rounded font-bold">Match ID: ${t.id.slice(-6)}</span>
+                            <span class="text-xs text-gray-400"><i class="fa-regular fa-clock mr-1"></i>${t.time}</span>
+                        </div>
+                        <h3 class="font-bold text-base">${t.title}</h3>
+                        <div class="flex justify-between text-xs text-gray-300 bg-gray-900/50 p-2.5 rounded-xl">
+                            <div>Prize: <span class="text-neongreen font-bold">₹${t.prize}</span></div>
+                            <div>Entry Fee: <span class="text-yellow-400 font-bold">₹${t.entry}</span></div>
+                        </div>
+                        <div class="space-y-2 pt-2 border-t border-gray-800">
+                            <input type="text" id="roomId_${t.id}" placeholder="Room ID" value="${t.roomId !== 'Not Shared Yet' ? t.roomId : ''}" class="w-full p-2 bg-gray-900 rounded text-xs border border-gray-700">
+                            <input type="text" id="roomPass_${t.id}" placeholder="Room Password" value="${t.roomPass !== 'Not Shared Yet' ? t.roomPass : ''}" class="w-full p-2 bg-gray-900 rounded text-xs border border-gray-700">
+                            <input type="text" id="serverIp_${t.id}" placeholder="Minecraft Server IP" value="${t.serverIp !== 'Not Shared Yet' ? t.serverIp : ''}" class="w-full p-2 bg-gray-900 rounded text-xs border border-gray-700">
+                            <button type="button" onclick="updateRoomCredentials('${t.id}')" class="w-full bg-neongreen text-gray-950 py-2 rounded text-xs font-bold">SAVE & SHARE DETAILS</button>
+                            <button type="button" onclick="deleteTournament('${t.id}')" class="w-full bg-red-600 text-white py-2 rounded text-xs font-bold">DELETE MATCH</button>
+                        </div>
+                    </div>
+                `).join('');
+                return;
+            }
+
+            dbRef.child('actoron_booked_matches_' + username).once('value', (bSnap) => {
+                let bookingsObj = bSnap.val() || {};
+                let bookedIds = Object.values(bookingsObj).map(b => b.id);
+
+                list.innerHTML = tournaments.map(t => {
+                    let isJoined = bookedIds.includes(t.id);
+                    return `
+                        <div class="bg-cardbg border border-gray-800 p-4 rounded-2xl shadow-md space-y-3">
+                            ${t.banner ? `<img src="${t.banner}" class="w-full h-40 object-cover rounded-xl border border-gray-700">` : ''}
+                            <div class="flex justify-between items-center">
+                                <span class="bg-red-500/20 text-neonred text-xs px-2 py-0.5 rounded font-bold">Match ID: ${t.id.slice(-6)}</span>
+                                <span class="text-xs text-gray-400"><i class="fa-regular fa-clock mr-1"></i>${t.time}</span>
+                            </div>
+                            <h3 class="font-bold text-base">${t.title}</h3>
+                            <div class="flex justify-between text-xs text-gray-300 bg-gray-900/50 p-2.5 rounded-xl">
+                                <div>Prize: <span class="text-neongreen font-bold">₹${t.prize}</span></div>
+                                <div>Entry Fee: <span class="text-yellow-400 font-bold">₹${t.entry}</span></div>
+                            </div>
+                            ${isJoined ? 
+                                `<button type="button" disabled class="w-full bg-gray-800 text-gray-400 py-2.5 rounded-xl font-bold text-xs cursor-not-allowed">ALREADY JOINED</button>` :
+                                `<button type="button" onclick="joinTournament('${t.id}')" class="w-full bg-neonred py-2.5 rounded-xl font-bold text-xs hover:bg-red-600 transition">JOIN TOURNAMENT (₹${t.entry})</button>`
+                            }
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+
+        function updateRoomCredentials(matchId) {
+            let roomId = document.getElementById('roomId_' + matchId).value.trim();
+            let roomPass = document.getElementById('roomPass_' + matchId).value.trim();
+            let serverIp = document.getElementById('serverIp_' + matchId).value.trim();
+
+            dbRef.child('admin_tournaments_list/' + matchId).update({ 
+                roomId: roomId || "Not Shared Yet", 
+                roomPass: roomPass || "Not Shared Yet", 
+                serverIp: serverIp || "Not Shared Yet" 
+            }, () => {
+                showToast("Match Details Saved!");
+                loadTournamentsList();
+            });
+        }
+
+        function joinTournament(matchId) {
+            let username = localStorage.getItem('actoron_username');
+            dbRef.child('admin_tournaments_list/' + matchId).once('value', (snapshot) => {
+                let match = snapshot.val();
+                if(!match) return;
+
+                dbRef.child('actoron_wallets/' + username).once('value', (wSnap) => {
+                    let wallet = wSnap.val() || { deposit: 0, winning: 0 };
+                    let entryFee = Number(match.entry);
+
+                    if(wallet.deposit < entryFee) {
+                        showToast("Insufficient Deposit Balance! Please add money first.");
+                        openAddMoneyModal();
+                        return;
+                    }
+
+                    wallet.deposit -= entryFee;
+                    dbRef.child('actoron_wallets/' + username).set(wallet, () => {
+                        dbRef.child('admin_earnings').once('value', (eSnap) => {
+                            let currentEarnings = eSnap.val() || 0;
+                            dbRef.child('admin_earnings').set(currentEarnings + entryFee);
+                        });
+
+                        let bookingKey = dbRef.child('actoron_booked_matches_' + username).push().key;
+                        dbRef.child('actoron_booked_matches_' + username + '/' + bookingKey).set(match, () => {
+                            
+                            let hKey = dbRef.child('actoron_history_' + username).push().key;
+                            dbRef.child('actoron_history_' + username + '/' + hKey).set({
+                                text: `Joined Match: ${match.title} (Fee: ₹${entryFee})`,
+                                time: new Date().toLocaleString()
+                            }, () => {
+                                showToast("Successfully Joined! Check Bookings & History.");
+                                loadUserWalletAndTransactions();
+                                loadTournamentsList();
+                                loadUserBookedMatches();
+                                loadUserHistory();
+                            });
+                        });
+                    });
+                });
+            });
+        }
+
+        function loadUserBookedMatches() {
+            let username = localStorage.getItem('actoron_username');
+            const container = document.getElementById('tab2ContentBody');
+            if(!container) return;
+
+            dbRef.child('actoron_booked_matches_' + username).once('value', (snapshot) => {
+                let bookingsObj = snapshot.val() || {};
+                let bookings = Object.values(bookingsObj);
+
+                if(bookings.length === 0) {
+                    container.innerHTML = `<div class="bg-cardbg border border-gray-800 p-5 rounded-2xl text-center text-xs text-gray-400 space-y-2">
+                        <i class="fa-solid fa-gamepad text-2xl text-gray-600"></i>
+                        <p>You haven't joined any match yet!</p>
+                    </div>`;
+                    return;
+                }
+
+                container.innerHTML = bookings.map(m => `
+                    <div class="bg-cardbg border border-cyan-500/30 p-4 rounded-2xl shadow-md space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-cyan-400 font-bold">${m.title}</span>
+                            <span class="bg-gray-900 px-2 py-0.5 rounded text-gray-300">${m.time}</span>
+                        </div>
+                        <div class="bg-gray-900 p-3 rounded-xl border border-gray-800 space-y-1 text-xs">
+                            <div class="text-gray-400">🔑 Match & Server Details:</div>
+                            <div class="flex justify-between"><span>Room ID: <strong class="text-yellow-400">${m.roomId || 'Not Shared Yet'}</strong></span></div>
+                            <div class="flex justify-between"><span>Password: <strong class="text-neongreen">${m.roomPass || 'Not Shared Yet'}</strong></span></div>
+                            <div class="flex justify-between"><span>Server IP: <strong class="text-cyan-300 font-mono">${m.serverIp || 'Not Shared Yet'}</strong></span></div>
+                        </div>
+                    </div>
+                `).join('');
+            });
+        }
+
+        function loadUserHistory() {
+            let username = localStorage.getItem('actoron_username');
+            const historyList = document.getElementById('userHistoryList');
+            if(!historyList) return;
+
+            dbRef.child('actoron_history_' + username).once('value', (snapshot) => {
+                let hObj = snapshot.val() || {};
+                let items = Object.values(hObj).reverse();
+
+                if(items.length === 0) {
+                    historyList.innerHTML = `<p class="text-gray-400">No recent history available.</p>`;
+                    return;
+                }
+
+                historyList.innerHTML = items.map(h => `
+                    <div class="bg-gray-900 p-2.5 rounded-xl border border-gray-800 flex justify-between items-center text-[11px]">
+                        <span class="text-gray-200">${h.text}</span>
+                        <span class="text-gray-500 text-[10px]">${h.time}</span>
+                    </div>
+                `).join('');
+            });
+        }
+
+        function loadUserWalletAndTransactions() {
+            let username = localStorage.getItem('actoron_username');
+            dbRef.child('actoron_wallets/' + username).once('value', (snapshot) => {
+                let userWallet = snapshot.val() || { deposit: 0, winning: 0 };
+
+                if(document.getElementById('depositWalletBal')) document.getElementById('depositWalletBal').innerText = "₹" + userWallet.deposit;
+                if(document.getElementById('winningWalletBal')) document.getElementById('winningWalletBal').innerText = "₹" + userWallet.winning;
+                if(document.getElementById('navDepositBal')) document.getElementById('navDepositBal').innerText = "₹" + userWallet.deposit;
+                if(document.getElementById('navWinningBal')) document.getElementById('navWinningBal').innerText = "₹" + userWallet.winning;
+            });
+        }
+
+        function openAddMoneyModal() { document.getElementById('depositScannerModal').classList.remove('hidden'); }
+        function openWithdrawModal() { document.getElementById('withdrawModal').classList.remove('hidden'); }
+        function openAdminWithdrawModal() { document.getElementById('adminWithdrawModal').classList.remove('hidden'); }
+        
+        function submitDepositProof() {
+            let amount = document.getElementById('depositAmountInput').value.trim();
+            let senderUpi = document.getElementById('senderUpiInput').value.trim();
+            let utr = document.getElementById('utrInput').value.trim();
+
+            if(!amount || !senderUpi || !utr) { showToast("Please fill all deposit details!"); return; }
+
+            let username = localStorage.getItem('actoron_username') || "Player";
+            let reqKey = dbRef.child('admin_deposit_requests').push().key;
+            dbRef.child('admin_deposit_requests/' + reqKey).set({ username, amount, senderUpi, utr }, () => {
+                showToast("Deposit request sent to Admin!");
+                document.getElementById('depositScannerModal').classList.add('hidden');
+            });
+        }
+
+        function submitWithdrawRequest() {
+            let amount = document.getElementById('withdrawAmountInput').value.trim();
+            let upi = document.getElementById('withdrawUpiInput').value.trim();
+
+            if(!amount || !upi) { showToast("Please fill withdrawal details!"); return; }
+
+            let username = localStorage.getItem('actoron_username') || "Player";
+            let reqKey = dbRef.child('admin_withdraw_requests').push().key;
+            dbRef.child('admin_withdraw_requests/' + reqKey).set({ username, amount, upi }, () => {
+                
+                let hKey = dbRef.child('actoron_history_' + username).push().key;
+                dbRef.child('actoron_history_' + username + '/' + hKey).set({
+                    text: `Withdrawal Requested: ₹${amount} to UPI: ${upi}`,
+                    time: new Date().toLocaleString()
+                }, () => {
+                    showToast("Withdrawal request sent to Admin!");
+                    document.getElementById('withdrawModal').classList.add('hidden');
+                    loadUserHistory();
+                });
+            });
+        }
+
+        function submitAdminPayout() {
+            let amount = document.getElementById('adminWithdrawAmount').value.trim();
+            let upi = document.getElementById('adminUpiInput').value.trim();
+
+            if(!amount || !upi) {
+                showToast("Enter amount and payout UPI!");
+                return;
+            }
+
+            dbRef.child('admin_earnings').once('value', (snapshot) => {
+                let currentEarnings = snapshot.val() || 0;
+                if(Number(amount) > currentEarnings) {
+                    showToast("Insufficient Admin Earnings balance!");
+                    return;
+                }
+
+                dbRef.child('admin_earnings').set(currentEarnings - Number(amount), () => {
+                    showToast("Admin Payout Recorded Successfully!");
+                    document.getElementById('adminWithdrawModal').classList.add('hidden');
+                    document.getElementById('adminWithdrawAmount').value = "";
+                    document.getElementById('adminUpiInput').value = "";
+                });
+            });
+        }
+
+        function handleLogout() { 
+            localStorage.removeItem('actoron_user_logged');
+            localStorage.removeItem('actoron_role');
+            localStorage.removeItem('actoron_username');
+            location.reload(); 
+        }
+
+        function switchTab(tab) {
+            ['tournaments', 'rooms', 'scoreboard', 'wallet', 'profile'].forEach(t => {
+                if(document.getElementById('tab-' + t)) document.getElementById('tab-' + t).classList.add('hidden');
+            });
+            if(document.getElementById('tab-' + tab)) document.getElementById('tab-' + tab).classList.remove('hidden');
+            let role = localStorage.getItem('actoron_role');
+            if(role === 'admin') loadAdminData();
+            if(tab === 'wallet' && role !== 'admin') loadUserWalletAndTransactions();
+            if(tab === 'rooms' && role !== 'admin') loadUserBookedMatches();
+            if(tab === 'scoreboard' && role !== 'admin') loadUserHistory();
+        }
+    </script>
+</body>
+</html>
